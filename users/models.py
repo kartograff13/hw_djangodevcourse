@@ -11,7 +11,7 @@ class User(AbstractUser):
         unique=True, verbose_name="Электронная почта", help_text="Укажите Вашу электронную почту"
     )
     phone = PhoneNumberField(
-        unique=True, blank=True, null=True, verbose_name="Телефон", help_text="Укажите Ваш номер телефона"
+        blank=True, null=True, verbose_name="Телефон", help_text="Укажите Ваш номер телефона"
     )
     city = models.CharField(max_length=50, blank=True, null=True, verbose_name="Город", help_text="Укажите Ваш город")
     avatar = models.ImageField(
