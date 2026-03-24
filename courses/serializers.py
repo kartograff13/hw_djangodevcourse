@@ -3,6 +3,14 @@ from rest_framework import serializers
 from courses.models import Course, Lesson
 
 
+class LessonsSerializer(serializers.ModelSerializer):
+    """Сериализатор для модели Lesson"""
+
+    class Meta:
+        model = Lesson
+        fields = "__all__"
+
+
 class CourseSerializer(serializers.ModelSerializer):
     """
     Сериализатор для модели Course.
@@ -11,6 +19,7 @@ class CourseSerializer(serializers.ModelSerializer):
     """
 
     lessons_count = serializers.SerializerMethodField()
+    lessons = LessonsSerializer(many=True, read_only=True)
 
     class Meta:
         model = Course
@@ -19,11 +28,3 @@ class CourseSerializer(serializers.ModelSerializer):
     def get_lessons_count(self, obj):
         """Возвращает количество уроков для данного курса"""
         return obj.lessons.count()
-
-
-class LessonsSerializer(serializers.ModelSerializer):
-    """Сериализатор для модели Lesson"""
-
-    class Meta:
-        model = Lesson
-        fields = "__all__"
