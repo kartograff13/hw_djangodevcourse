@@ -4,8 +4,7 @@ from django.urls import include, path
 from rest_framework import routers
 
 from config import settings
-from courses.views import CourseViewSet
-from users.views import PaymentViewSet
+from users.views import PaymentViewSet, UserProfileView
 
 router = routers.DefaultRouter()
 router.register(r"payments", PaymentViewSet, basename="payments")
@@ -14,6 +13,7 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/", include("courses.urls")),
     path("api/", include(router.urls)),
+    path("api/profile/", UserProfileView.as_view(), name="user-profile"),
 ]
 
 if settings.DEBUG:
