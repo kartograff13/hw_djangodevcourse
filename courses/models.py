@@ -23,7 +23,9 @@ class Lesson(models.Model):
     description = models.TextField(blank=True, verbose_name="Описание")
     preview = models.ImageField(upload_to="courses/lessons_previews/", blank=True, null=True, verbose_name="Превью")
     video_url = models.URLField(blank=True, null=True, verbose_name="Ссылка на видео")
-    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="lessons", verbose_name="курс")
+    course = models.ForeignKey(
+        Course, on_delete=models.SET_NULL, blank=True, null=True, related_name="lessons", verbose_name="курс"
+    )
 
     class Meta:
         verbose_name = "Урок"
