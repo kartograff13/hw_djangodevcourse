@@ -54,3 +54,11 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         validated_data.pop("password2")
         user = User.objects.create_user(**validated_data)
         return user
+
+
+class PublicUserSerializer(serializers.ModelSerializer):
+    """Сериализатор для просмотра любого профиля (без фамилии и платежей)"""
+
+    class Meta:
+        model = User
+        fields = ("id", "email", "first_name", "phone", "city", "avatar")

@@ -7,7 +7,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 from users.filters import PaymentFilter
 from users.models import Payment, User
-from users.serializers import PaymentSerializer, UserRegistrationSerializer, UserSerializer
+from users.serializers import PaymentSerializer, PublicUserSerializer, UserRegistrationSerializer, UserSerializer
 
 
 class PaymentViewSet(viewsets.ModelViewSet):
@@ -58,3 +58,11 @@ class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = [permissions.IsAdminUser]
+
+
+class PublicUserDetailView(generics.RetrieveAPIView):
+    """Просмотр профиля любого пользователя (только чтение, публичные поля)"""
+
+    queryset = User.objects.all()
+    serializer_class = PublicUserSerializer
+    permission_classes = [permissions.IsAuthenticated]
