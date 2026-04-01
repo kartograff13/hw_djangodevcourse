@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from courses.models import Course, Lesson, Subscription
+from courses.paginators import StandardResultsSetPagination
 from courses.serializers import CourseSerializer, LessonsSerializer
 from users.permissions import IsModeratorOrOwner
 
@@ -13,6 +14,7 @@ class CourseViewSet(viewsets.ModelViewSet):
 
     serializer_class = CourseSerializer
     permission_classes = [IsAuthenticated, IsModeratorOrOwner]
+    pagination_class = StandardResultsSetPagination
 
     def get_queryset(self):
         """Возвращает список курсов в зависимости от прав пользователя"""
@@ -32,6 +34,7 @@ class LessonViewSet(viewsets.ModelViewSet):
 
     serializer_class = LessonsSerializer
     permission_classes = [IsAuthenticated, IsModeratorOrOwner]
+    pagination_class = StandardResultsSetPagination
 
     def get_queryset(self):
         """Возвращает список уроков в зависимости от прав пользователя"""
