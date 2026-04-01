@@ -16,7 +16,7 @@ urlpatterns = [
     path("api/", include("courses.urls")),
     path("api/", include(router.urls)),
     path("api/profile/", UserProfileView.as_view(), name="user-profile"),
-    path("api/users/<int:pk>/", PublicUserDetailView.as_view(), name="user-user-detail"),
+    path("api/profiles/<int:pk>/", PublicUserDetailView.as_view(), name="user-user-detail"),
     path("api/register/", UserRegistrationView.as_view(), name="user-register"),
     path("api/token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
     path("api/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
