@@ -1,10 +1,15 @@
 from rest_framework import serializers
 
 from courses.models import Course, Lesson
+from courses.validators import validate_youtube_url
 
 
 class LessonsSerializer(serializers.ModelSerializer):
     """Сериализатор для модели Lesson"""
+
+    video_url = serializers.URLField(
+        validators=[validate_youtube_url], required=False, allow_blank=True, allow_null=True
+    )
 
     class Meta:
         model = Lesson
