@@ -195,3 +195,163 @@ class SubscriptionTests(APITestCase):
         client = APIClient()
         response = client.post(self.subscribe_url, {"course_id": self.course.id})
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+
+class CourseCRUDTests(APITestCase):
+    """Тесты CRUD для курсов"""
+
+    def setUp(self):
+        self.moderator_group, _ = Group.objects.get_or_create(name="Модераторы")
+
+        self.user1 = User.objects.create_user(email="user1@example.com", password="testpass123")
+        self.user2 = User.objects.create_user(email="user2@example.com", password="testpass123")
+        self.moderator = User.objects.create_user(email="moderator@example.com", password="testpass123")
+        self.moderator.groups.add(self.moderator_group)
+
+        self.course1 = Course.objects.create(title="Course 1", owner=self.user1)
+        self.course2 = Course.objects.create(title="Course 2", owner=self.user2)
+
+        self.list_url = reverse("courses-list")
+        self.detail_url = lambda pk: reverse("courses-detail", args=[pk])
+
+        self.client_user1 = APIClient()
+        self.client_user1.force_authenticate(user=self.user1)
+        self.client_user2 = APIClient()
+        self.client_user2.force_authenticate(user=self.user2)
+        self.client_moderator = APIClient()
+        self.client_moderator.force_authenticate(user=self.moderator)
+
+    def test_user_can_create_course(self):
+        """Обычный пользователь может создать курс"""
+        data = {"title": "New Course", "description": "Test"}
+        response = self.client_user1.post(self.list_url, data)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        course = Course.objects.get(title="New Course")
+        self.assertEqual(course.owner, self.user1)
+
+    def test_user_can_update_own_course(self):
+        """Пользователь может обновить свой курс"""
+        data = {"title": "Updated Title"}
+        response = self.client_user1.patch(self.detail_url(self.course1.id), data)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.course1.refresh_from_db()
+        self.assertEqual(self.course1.title, "Updated Title")
+
+    def test_user_can_delete_own_course(self):
+        """Пользователь может удалить свой курс"""
+        response = self.client_user1.delete(self.detail_url(self.course1.id))
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(Course.objects.filter(id=self.course1.id).exists())
+
+    def test_user_cannot_update_other_course(self):
+        """Пользователь не может обновить чужой курс"""
+        data = {"title": "Hacked"}
+        response = self.client_user1.put(self.detail_url(self.course2.id), data)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_user_cannot_delete_other_course(self):
+        """Пользователь не может удалить чужой курс"""
+        response = self.client_user1.delete(self.detail_url(self.course2.id))
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_user_can_list_own_courses(self):
+        """Пользователь видит только свои курсы"""
+        response = self.client_user1.get(self.list_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data["results"]), 1)
+        self.assertEqual(response.data["results"][0]["id"], self.course1.id)
+
+    def test_moderator_can_view_all_courses(self):
+        """Модератор видит все курсы"""
+        response = self.client_moderator.get(self.list_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["count"], 2)
+
+    def test_moderator_can_update_any_course(self):
+        """Модератор может редактировать любой курс"""
+        data = {"title": "Moderated"}
+        response = self.client_moderator.patch(self.detail_url(self.course1.id), data)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.course1.refresh_from_db()
+        self.assertEqual(self.course1.title, "Moderated")
+
+    def test_moderator_cannot_create_course(self):
+        """Модератор не может создать курс"""
+        data = {"title": "New Course"}
+        response = self.client_moderator.post(self.list_url, data)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_moderator_cannot_delete_course(self):
+        """Модератор не может удалить курс"""
+        response = self.client_moderator.delete(self.detail_url(self.course1.id))
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertTrue(Course.objects.filter(id=self.course1.id).exists())
+
+
+class LessonValidatorTests(APITestCase):
+    """Тесты валидатора ссылок YouTube"""
+
+    def setUp(self):
+        self.user = User.objects.create_user(email="user@example.com", password="testpass123")
+        self.course = Course.objects.create(title="Test Course", owner=self.user)
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.user)
+        self.list_url = reverse("lessons-list")
+
+    def test_valid_youtube_url(self):
+        """Разрешённые YouTube ссылки проходят валидацию"""
+        valid_urls = [
+            "https://www.youtube.com/watch?v=abc123",
+            "https://youtu.be/abc123",
+            "https://youtube.com/watch?v=abc123",
+            "https://m.youtube.com/watch?v=abc123",
+        ]
+        for url in valid_urls:
+            data = {"title": "Lesson", "course": self.course.id, "video_url": url}
+            response = self.client.post(self.list_url, data)
+            self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+    def test_invalid_youtube_url(self):
+        """Ссылки не на YouTube отклоняются"""
+        invalid_urls = ["https://vimeo.com/123456", "https://rutube.ru/video/123", "https://example.com/video"]
+        for url in invalid_urls:
+            data = {"title": "Lesson", "course": self.course.id, "video_url": url}
+            response = self.client.post(self.list_url, data)
+            self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+            self.assertIn("video_url", response.data)
+
+
+class PaginationTests(APITestCase):
+    """Тесты для пагинации"""
+
+    def setUp(self):
+        self.user = User.objects.create_user(email="user@example.com", password="testpass123")
+        self.course = Course.objects.create(title="Test Course", owner=self.user)
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.user)
+        for i in range(15):
+            Lesson.objects.create(title=f"Lesson {i}", course=self.course, owner=self.user)
+
+    def test_pagination_default_page_size(self):
+        """Проверка размера страницы по умолчанию (10)"""
+        url = reverse("lessons-list")
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["count"], 15)
+        self.assertEqual(len(response.data["results"]), 10)
+        self.assertIsNotNone(response.data["next"])
+        self.assertIsNone(response.data["previous"])
+
+    def test_pagination_custom_page_size(self):
+        """Проверка параметра page_size"""
+        url = reverse("lessons-list") + "?page_size=5"
+        response = self.client.get(url)
+        self.assertEqual(len(response.data["results"]), 5)
+
+    def test_pagination_second_page(self):
+        """Переход на вторую страницу"""
+        url = reverse("lessons-list") + "?page=2"
+        response = self.client.get(url)
+        self.assertEqual(len(response.data["results"]), 5)
+        self.assertIsNone(response.data["next"])
+        self.assertIsNotNone(response.data["previous"])
