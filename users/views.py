@@ -1,7 +1,7 @@
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import generics, permissions, viewsets
 from rest_framework.filters import OrderingFilter
-from rest_framework.generics import CreateAPIView, RetrieveUpdateAPIView
+from rest_framework.generics import RetrieveUpdateAPIView
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 
@@ -19,6 +19,7 @@ class PaymentViewSet(viewsets.ModelViewSet):
     filterset_class = PaymentFilter
     ordering_fields = ["payment_date"]
     ordering = ["-payment_date"]
+    permission_classes = [permissions.IsAuthenticated]
 
 
 class UserProfileView(RetrieveUpdateAPIView):
