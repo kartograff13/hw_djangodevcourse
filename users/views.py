@@ -1,13 +1,17 @@
+import stripe
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import generics, permissions, viewsets
 from rest_framework.filters import OrderingFilter
 from rest_framework.generics import RetrieveUpdateAPIView
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from courses.models import Course
 from users.filters import PaymentFilter
 from users.models import Payment, User
 from users.serializers import PaymentSerializer, PublicUserSerializer, UserRegistrationSerializer, UserSerializer
+from users.stripe_service import create_stripe_payment_session
 
 
 class PaymentViewSet(viewsets.ModelViewSet):
@@ -67,3 +71,76 @@ class PublicUserDetailView(generics.RetrieveAPIView):
     queryset = User.objects.all()
     serializer_class = PublicUserSerializer
     permission_classes = [permissions.IsAuthenticated]
+
+
+class CreatePaymentView(APIView):
+    """Представление для создания платежа через Stripe"""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        course_id = request.data.get("course_id")
+        if not course_id:
+            return Response({"error": "Course ID required"}, status=400)
+        try:
+            course = Course.objects.get(id=course_id)
+        except Course.DoesNotExist:
+            return Response({"error": "Course not found"}, status=404)
+        amount = course.price
+
+        payment = Payment.objects.create(
+            user=request.user,
+            course=course,
+            amount=amount,
+            payment_method="transfer",
+            stripe_payment_status="pending",
+        )
+
+        stripe_data = create_stripe_payment_session(course, request.user, amount)
+
+        payment.stripe_product_id = stripe_data["product_id"]
+        payment.stripe_price_id = stripe_data["price_id"]
+        payment.stripe_session_id = stripe_data["session_id"]
+        payment.payment_url = stripe_data["session_url"]
+        payment.save()
+
+        return Response(
+            {
+                "payment_id": payment.id,
+                "payment_url": stripe_data["session_url"],
+            },
+            status=201,
+        )
+
+
+class CheckPaymentStatusView(APIView):
+    """Представление для проверки статуса платежа через Stripe"""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, payment_id):
+        try:
+            payment = Payment.objects.get(pk=payment_id, user=request.user)
+        except Payment.DoesNotExist:
+            return Response({"error": "Payment not found"}, status=404)
+        session = stripe.checkout.Session.retrieve(payment.stripe_session_id)
+
+        if session.payment_status == "paid" and payment.stripe_payment_status != "paid":
+            payment.stripe_payment_status = "paid"
+            payment.save()
+
+        return Response({"status": payment.stripe_payment_status})
+
+
+class PaymentSuccessView(APIView):
+    """Представление для обработки успешной оплаты"""
+
+    def get(self, request):
+        return Response({"message": "Payment successful"}, status=200)
+
+
+class PaymentCancelView(APIView):
+    """Представление для обработки отмены оплаты"""
+
+    def get(self, request):
+        return Response({"message": "Payment canceled"}, status=200)

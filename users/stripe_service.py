@@ -6,7 +6,7 @@ from config import settings
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
 
-def create_stripe_payment_session(course, user):
+def create_stripe_payment_session(course, user, amount):
     """Создаёт продукт, цену и сессию оплаты в Stripe"""
 
     product = stripe.Product.create(
@@ -17,7 +17,7 @@ def create_stripe_payment_session(course, user):
 
     price = stripe.Price.create(
         product=stripe_product_id,
-        unit_amount=int(course.amount * 100),
+        unit_amount=int(amount * 100),
         currency="rub",
     )
     stripe_price_id = price.id

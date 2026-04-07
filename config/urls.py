@@ -6,7 +6,17 @@ from rest_framework import routers
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from config import settings
-from users.views import PaymentViewSet, PublicUserDetailView, UserProfileView, UserRegistrationView, UserViewSet
+from users.views import (
+    CheckPaymentStatusView,
+    CreatePaymentView,
+    PaymentCancelView,
+    PaymentSuccessView,
+    PaymentViewSet,
+    PublicUserDetailView,
+    UserProfileView,
+    UserRegistrationView,
+    UserViewSet,
+)
 
 router = routers.DefaultRouter()
 router.register(r"payments", PaymentViewSet, basename="payments")
@@ -24,6 +34,10 @@ urlpatterns = [
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     path("api/schema/swagger/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger"),
     path("api/schema/redoc/", SpectacularRedocView.as_view(url_name="schema"), name="redoc"),
+    path("api/payments/create/", CreatePaymentView.as_view(), name="payment-create"),
+    path("api/payments/status/<int:payment_id>/", CheckPaymentStatusView.as_view(), name="payment-status"),
+    path("stripe/success/", PaymentSuccessView.as_view(), name="payment-success"),
+    path("stripe/cancel/", PaymentCancelView.as_view(), name="payment-cancel"),
 ]
 
 if settings.DEBUG:
