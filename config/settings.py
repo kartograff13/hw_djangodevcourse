@@ -27,6 +27,7 @@ INSTALLED_APPS = [
     "courses",
     "django_filters",
     "rest_framework_simplejwt",
+    "drf_spectacular",
 ]
 
 MIDDLEWARE = [
@@ -115,6 +116,7 @@ REST_FRAMEWORK = {
     ],
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 10,
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
 
 SIMPLE_JWT = {
@@ -123,4 +125,19 @@ SIMPLE_JWT = {
     "ROTATE_REFRESH_TOKENS": False,
     "BLACKLIST_AFTER_ROTATION": True,
     "AUTH_HEADER_TYPES": ("Bearer",),
+}
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "hw_djangodevcourse API",
+    "DESCRIPTION": "API для онлайн-платформы обучения с разработкой LMS",
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+    "TAGS": [
+        {"name": "courses", "description": "Управление курсами"},
+        {"name": "lessons", "description": "Управление уроками"},
+        {"name": "users", "description": "Управление пользователями и профилями"},
+        {"name": "payments", "description": "Платежи"},
+        {"name": "subscriptions", "description": "Подписки на обновления курсов"},
+        {"name": "auth", "description": "Аутентификация и регистрация"},
+    ],
 }
