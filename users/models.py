@@ -84,6 +84,15 @@ class Payment(models.Model):
     )
     amount = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Сумма оплаты")
     payment_method = models.CharField(choices=PAYMENT_METHOD_CHOICES, max_length=10, verbose_name="Способ оплаты")
+    stripe_product_id = models.CharField(max_length=255, blank=True, null=True, verbose_name="ID продукта в Stripe")
+    stripe_price_id = models.CharField(max_length=255, blank=True, null=True, verbose_name="ID цены в Stripe")
+    stripe_session_id = models.CharField(max_length=255, blank=True, null=True, verbose_name="ID сессии в Stripe")
+    stripe_payment_status = models.CharField(
+        max_length=50,
+        default="pending",
+        verbose_name="Статус платежа в Stripe",
+    )
+    payment_url = models.URLField(max_length=500, blank=True, null=True, verbose_name="Ссылка на оплату")
 
     class Meta:
         verbose_name = "Платёж"
