@@ -1,3 +1,6 @@
+from datetime import timedelta
+
+from django.utils import timezone
 from rest_framework import status, viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -30,10 +33,15 @@ class CourseViewSet(viewsets.ModelViewSet):
         serializer.save(owner=self.request.user)
 
     def perform_update(self, serializer):
+        """Выполняет обновление курса и отправляет уведомление подписчикам с ограничением частоты"""
         course = serializer.save()
-        subscriber_emails = course.subscriptions.values_list("user__email", flat=True)
-        if subscriber_emails:
-            send_course_update_email.delay(course.id, list(subscriber_emails))
+        last_sent = course.last_notification_sent
+        if not last_sent or (timezone.now() - last_sent) > timedelta(hours=4):
+            subscriber_emails = course.subscriptions.values_list("user__email", flat=True)
+            if subscriber_emails:
+                send_course_update_email.delay(course.id, list(subscriber_emails))
+            course.last_notification_sent = timezone.now()
+            course.save(update_fields=["last_notification_sent"])
 
 
 class LessonViewSet(viewsets.ModelViewSet):
@@ -54,6 +62,19 @@ class LessonViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         """Сохраняет новый урок автоматически сохраняя владельца"""
         serializer.save(owner=self.request.user)
+
+    def perform_update(self, serializer):
+        """Выполняет обновление урока и отправляет уведомление подписчикам курса с ограничением по частоте (4 часа)"""
+        lesson = serializer.save()
+        course = lesson.course
+        if course:
+            last_sent = course.last_notification_sent
+            if not last_sent or (timezone.now() - last_sent) > timedelta(hours=4):
+                subscriber_emails = course.subscriptions.values_list("user__email", flat=True)
+                if subscriber_emails:
+                    send_course_update_email.delay(course.id, list(subscriber_emails))
+                course.last_notification_sent = timezone.now()
+                course.save(update_fields=["last_notification_sent"])
 
 
 class SubscriptionView(APIView):
