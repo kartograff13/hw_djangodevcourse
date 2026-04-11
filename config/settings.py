@@ -3,6 +3,7 @@ from datetime import timedelta
 from pathlib import Path
 
 import stripe
+from celery.schedules import crontab
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -162,6 +163,10 @@ CELERY_BEAT_SCHEDULE = {
     "check-pending-payments": {
         "task": "users.tasks.check_pending_payments",
         "schedule": 60 * 30,
+    },
+    "deactivate-inactive-users": {
+        "task": "users.tasks.deactivate_inactive_users",
+        "schedule": crontab(hour=0, minute=0),
     },
 }
 
