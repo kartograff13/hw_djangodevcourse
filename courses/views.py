@@ -7,6 +7,7 @@ from courses.models import Course, Lesson, Subscription
 from courses.paginators import StandardResultsSetPagination
 from courses.serializers import CourseSerializer, LessonsSerializer
 from users.permissions import IsModeratorOrOwner
+from users.tasks import send_course_update_email
 
 
 class CourseViewSet(viewsets.ModelViewSet):
@@ -27,6 +28,12 @@ class CourseViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         """Сохраняет новый курс автоматически сохраняя владельца"""
         serializer.save(owner=self.request.user)
+
+    def perform_update(self, serializer):
+        course = serializer.save()
+        subscriber_emails = course.subscriptions.values_list("user__email", flat=True)
+        if subscriber_emails:
+            send_course_update_email.delay(course.id, list(subscriber_emails))
 
 
 class LessonViewSet(viewsets.ModelViewSet):
