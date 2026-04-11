@@ -148,3 +148,19 @@ STRIPE_PUBLISHABLE_KEY = os.getenv("STRIPE_PUBLISHABLE_KEY")
 stripe.api_key = STRIPE_SECRET_KEY
 
 SITE_URL = os.getenv("SITE_URL", "http://127.0.0.1:8000")
+
+# Celery Configuration
+CELERY_BROKER_URL = (
+    f"redis://{os.getenv('REDIS_HOST', 'localhost')}:{os.getenv('REDIS_PORT', 6379)}/{os.getenv('REDIS_DB', 0)}"
+)
+CELERY_RESULT_BACKEND = CELERY_BROKER_URL
+CELERY_ACCEPT_CONTENT = ["application/json"]
+CELERY_TASK_SERIALIZER = "json"
+CELERY_RESULT_SERIALIZER = "json"
+CELERY_TIMEZONE = TIME_ZONE
+CELERY_BEAT_SCHEDULE = {
+    'check-pending-payments': {
+        'task': 'users.tasks.check_pending_payments',
+        'schedule': 60 * 30,
+    },
+}
