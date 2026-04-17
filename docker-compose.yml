@@ -50,6 +50,7 @@ services:
       - DB_HOST=db
       - DB_PORT=5432
       - DEBUG=${DEBUG:-True}
+      - REDIS_HOST=redis
 
   redis:
     image: redis:7-alpine
@@ -59,6 +60,38 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
+
+  celery:
+    build: .
+    container_name: lms_celery
+    restart: always
+    command: celery -A config worker -l info
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    depends_on:
+      - db
+      - redis
+      - web
+    environment:
+      - REDIS_HOST=redis
+
+  celery-beat:
+    build: .
+    container_name: lms_celery_beat
+    restart: always
+    command: celery -A config beat -l info
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    depends_on:
+      - db
+      - redis
+      - web
+    environment:
+      - REDIS_HOST=redis
 
 volumes:
   postgres_data:
