@@ -27,7 +27,6 @@
 
 ## 🐳 Запуск через Docker (рекомендованный способ)
 ### 1. Клонируйте репозиторий
-
 ```
 git clone <url вашего репозитория>
 cd hw_djangodevcourse
@@ -41,18 +40,43 @@ cd hw_djangodevcourse
 docker-compose up --build
 ```
 
-### 4. Выполните миграции и создайте суперпользователя (в другом терминале)
+### 4. Проверка работоспособности сервисов
+
+После запуска (```docker-compose up --build```) убедитесь, что все контейнеры работают:
+```bash
+docker-compose ps
+```
+Вы должны увидеть статус ***Up*** для всех сервисов: ```db```, ```redis```, ```web```, ```celery```, ```celery-beat```, ```pgadmin```.
+
+### 5. Выполните миграции и создайте суперпользователя (в другом терминале)
 ```
 docker-compose exec web python manage.py migrate
 docker-compose exec web python manage.py createsuperuser
 ```
 
-### 5. Проект доступен:
+### 6. Проект доступен:
 - **Django API**: http://localhost:8000
 - **Swagger UI**: http://localhost:8000/api/schema/swagger/
 - **pgAdmin**: http://localhost:5050 (логин: admin@admin.com, пароль: admin)
 
-#### Остановка: ```docker-compose down```
+#### Проверка Celery:
+```
+# Логи воркера
+docker-compose logs celery
+
+# Логи бита
+docker-compose logs celery-beat
+```
+#### Если в логах нет критических ошибок – сервисы работают корректно.
+
+7. ### Остановка и очистка:
+```
+# Остановить все контейнеры
+docker-compose down
+
+# Остановить и удалить тома (БД, медиа, статика)
+docker-compose down -v
+```
 
 ## 🔧 Ручная установка (без Docker)
 
