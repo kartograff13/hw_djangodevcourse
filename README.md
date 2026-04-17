@@ -23,8 +23,38 @@
 - django-phonenumber-field
 - Pillow (для изображений)
 - Black, isort, flake8 (линтеры)
+- Docker / Docker Compose
 
-## 📦 Установка и запуск
+## 🐳 Запуск через Docker (рекомендованный способ)
+### 1. Клонируйте репозиторий
+
+```
+git clone <url вашего репозитория>
+cd hw_djangodevcourse
+```
+
+### 2. Создайте файл .env (см. .env.sample ниже).
+##### Убедитесь, что DB_HOST=db (имя сервиса в compose).
+
+### 3. Запустите контейнеры
+```bash
+docker-compose up --build
+```
+
+### 4. Выполните миграции и создайте суперпользователя (в другом терминале)
+```
+docker-compose exec web python manage.py migrate
+docker-compose exec web python manage.py createsuperuser
+```
+
+### 5. Проект доступен:
+- **Django API**: http://localhost:8000
+- **Swagger UI**: http://localhost:8000/api/schema/swagger/
+- **pgAdmin**: http://localhost:5050 (логин: admin@admin.com, пароль: admin)
+
+#### Остановка: ```docker-compose down```
+
+## 🔧 Ручная установка (без Docker)
 
 ### 1. Клонирование репозитория
 ```
@@ -138,6 +168,12 @@ isort .
 
 # Проверка flake8
 flake8
+
+# Docker: остановка контейнеров
+docker-compose down
+
+# Docker: просмотр логов
+docker-compose logs -f web
 ```
 
 ## 📄 Лицензия
