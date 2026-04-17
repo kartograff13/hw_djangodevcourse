@@ -51,14 +51,14 @@ services:
       - DB_PORT=5432
       - DEBUG=${DEBUG:-True}
 
-    redis:
-      image: redis:7-alpine
-      container_name: lms_redis
-      restart: always
-      ports:
-        - "6379:6379"
-      volumes:
-        - redis_data:/data
+  redis:
+    image: redis:7-alpine
+    container_name: lms_redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
 
 volumes:
   postgres_data:
