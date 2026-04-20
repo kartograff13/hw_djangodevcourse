@@ -50,8 +50,15 @@ docker-compose ps
 
 ### 5. Выполните миграции и создайте суперпользователя (в другом терминале)
 ```
+# Применить миграции
 docker-compose exec web python manage.py migrate
+
+# Создать суперпользователя (если нужно)
 docker-compose exec web python manage.py createsuperuser
+
+# (Опционально) Заполнить тестовыми данными
+docker-compose exec web python manage.py create_test_data
+docker-compose exec web python manage.py create_moderator_group
 ```
 
 ### 6. Проект доступен:
