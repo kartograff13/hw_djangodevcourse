@@ -178,3 +178,9 @@ EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
 EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "True") == "True"
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+# Настройка ALLOWED_HOSTS из переменной окружения
+ALLOWED_HOSTS_ENV = os.getenv("ALLOWED_HOSTS", "")
+ALLOWED_HOSTS = [host.strip() for host in ALLOWED_HOSTS_ENV.split(",") if host.strip()]
+if not ALLOWED_HOSTS:
+    ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
