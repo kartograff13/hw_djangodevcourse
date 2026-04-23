@@ -1,5 +1,9 @@
 import os
+from datetime import timedelta
 from pathlib import Path
+
+import stripe
+from celery.schedules import crontab
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -10,7 +14,7 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 
 DEBUG = os.getenv("DEBUG", False) == "True"
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -20,6 +24,12 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "rest_framework",
+    "users",
+    "phonenumber_field",
+    "courses",
+    "django_filters",
+    "rest_framework_simplejwt",
+    "drf_spectacular",
 ]
 
 MIDDLEWARE = [
@@ -54,11 +64,11 @@ WSGI_APPLICATION = "config.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql_psycopg2",
-        "NAME": os.getenv("NAME"),
-        "USER": os.getenv("USER"),
-        "PASSWORD": os.getenv("PASSWORD"),
-        "HOST": os.getenv("HOST"),
-        "PORT": os.getenv("PORT"),
+        "NAME": os.getenv("DB_NAME"),
+        "USER": os.getenv("DB_USER"),
+        "PASSWORD": os.getenv("DB_PASSWORD"),
+        "HOST": os.getenv("DB_HOST"),
+        "PORT": os.getenv("DB_PORT"),
     }
 }
 
@@ -94,3 +104,83 @@ MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+AUTH_USER_MODEL = "users.User"
+
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ],
+    "DEFAULT_FILTER_BACKENDS": [
+        "django_filters.rest_framework.DjangoFilterBackend",
+        "rest_framework.filters.SearchFilter",
+        "rest_framework.filters.OrderingFilter",
+    ],
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    "PAGE_SIZE": 10,
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+}
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
+    "ROTATE_REFRESH_TOKENS": False,
+    "BLACKLIST_AFTER_ROTATION": True,
+    "AUTH_HEADER_TYPES": ("Bearer",),
+}
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "hw_djangodevcourse API",
+    "DESCRIPTION": "API для онлайн-платформы обучения с разработкой LMS",
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+    "TAGS": [
+        {"name": "courses", "description": "Управление курсами"},
+        {"name": "lessons", "description": "Управление уроками"},
+        {"name": "users", "description": "Управление пользователями и профилями"},
+        {"name": "payments", "description": "Платежи"},
+        {"name": "subscriptions", "description": "Подписки на обновления курсов"},
+        {"name": "auth", "description": "Аутентификация и регистрация"},
+    ],
+}
+
+STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY")
+STRIPE_PUBLISHABLE_KEY = os.getenv("STRIPE_PUBLISHABLE_KEY")
+stripe.api_key = STRIPE_SECRET_KEY
+
+SITE_URL = os.getenv("SITE_URL", "http://127.0.0.1:8000")
+
+# Celery Configuration
+CELERY_BROKER_URL = (
+    f"redis://{os.getenv('REDIS_HOST', 'localhost')}:{os.getenv('REDIS_PORT', 6379)}/{os.getenv('REDIS_DB', 0)}"
+)
+CELERY_RESULT_BACKEND = CELERY_BROKER_URL
+CELERY_ACCEPT_CONTENT = ["application/json"]
+CELERY_TASK_SERIALIZER = "json"
+CELERY_RESULT_SERIALIZER = "json"
+CELERY_TIMEZONE = TIME_ZONE
+CELERY_BEAT_SCHEDULE = {
+    "check-pending-payments": {
+        "task": "users.tasks.check_pending_payments",
+        "schedule": 60 * 30,
+    },
+    "deactivate-inactive-users": {
+        "task": "users.tasks.deactivate_inactive_users",
+        "schedule": crontab(hour=0, minute=0),
+    },
+}
+
+# Email settings
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = os.getenv("EMAIL_HOST")
+EMAIL_PORT = int(os.getenv("EMAIL_PORT", 587))
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
+EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "True") == "True"
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+# Настройка ALLOWED_HOSTS из переменной окружения
+ALLOWED_HOSTS_ENV = os.getenv("ALLOWED_HOSTS", "")
+ALLOWED_HOSTS = [host.strip() for host in ALLOWED_HOSTS_ENV.split(",") if host.strip()]
+if not ALLOWED_HOSTS:
+    ALLOWED_HOSTS = ["127.0.0.1", "localhost"]

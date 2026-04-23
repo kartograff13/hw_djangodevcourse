@@ -1,0 +1,86 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_DB: test_db
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_pass
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Run migrations (test DB)
+        env:
+          DB_NAME: test_db
+          DB_USER: test_user
+          DB_PASSWORD: test_pass
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DEBUG: True
+          SECRET_KEY: dummy-secret-for-ci
+        run: python manage.py migrate
+      - name: Run tests
+        env:
+          DB_NAME: test_db
+          DB_USER: test_user
+          DB_PASSWORD: test_pass
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DEBUG: True
+          SECRET_KEY: dummy-secret-for-ci
+        run: python manage.py test
+
+  deploy:
+    needs: test
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to server via SSH
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            cd ~/projects/www/app1
+            git pull origin main
+            docker compose down
+            docker compose up --build -d
+            docker compose exec web python manage.py migrate
+            docker compose exec web python manage.py collectstatic --noinput
