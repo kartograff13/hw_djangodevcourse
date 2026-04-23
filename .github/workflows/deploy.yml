@@ -53,6 +53,7 @@ jobs:
           DB_HOST: localhost
           DB_PORT: 5432
           DEBUG: True
+          SECRET_KEY: dummy-secret-for-ci
         run: python manage.py migrate
       - name: Run tests
         env:
@@ -62,6 +63,7 @@ jobs:
           DB_HOST: localhost
           DB_PORT: 5432
           DEBUG: True
+          SECRET_KEY: dummy-secret-for-ci
         run: python manage.py test
 
   deploy:
